@@ -3,10 +3,10 @@ package main
 import "fmt"
 
 func main() {
-	testBasicPanic()
-	testGoRoutinePanic()
-	testDeepGoRoutinePanic()
-	testAsyncGoRoutinePanic()
+	testBasicPanic()          // recovers
+	testGoRoutinePanic()      // recovers
+	testDeepGoRoutinePanic()  // panics
+	testAsyncGoRoutinePanic() // panics
 }
 
 func handlePanic() {
