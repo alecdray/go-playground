@@ -6,10 +6,7 @@ func main() {
 	testBasicPanic()
 	testGoRoutinePanic()
 	testDeepGoRoutinePanic()
-
-	defer handlePanic()
-	done := testAsyncGoRoutinePanic()
-	<-done
+	testAsyncGoRoutinePanic()
 }
 
 func handlePanic() {
@@ -39,24 +36,28 @@ func testGoRoutinePanic() {
 func testDeepGoRoutinePanic() {
 	doneSignal := make(chan struct{})
 
+	defer handlePanic()
 	go func() {
-		defer handlePanic()
-		go func() {
-			defer close(doneSignal)
-			panic("testDeepGoRoutinePanic panic")
-		}()
+		defer close(doneSignal)
+		panic("testDeepGoRoutinePanic panic")
 	}()
 
 	<-doneSignal
 }
 
-func testAsyncGoRoutinePanic() <-chan struct{} {
-	doneSignal := make(chan struct{})
+func testAsyncGoRoutinePanic() {
+	defer handlePanic()
 
-	go func() {
-		defer close(doneSignal)
-		panic("testAsyncGoRoutinePanic panic")
+	done := func() <-chan struct{} {
+		doneSignal := make(chan struct{})
+
+		go func() {
+			defer close(doneSignal)
+			panic("testAsyncGoRoutinePanic panic")
+		}()
+
+		return doneSignal
 	}()
 
-	return doneSignal
+	<-done
 }
