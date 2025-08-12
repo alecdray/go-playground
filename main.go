@@ -3,10 +3,11 @@ package main
 import "fmt"
 
 func main() {
-	testBasicPanic()          // recovers
-	testGoRoutinePanic()      // recovers
-	testDeepGoRoutinePanic()  // panics
-	testAsyncGoRoutinePanic() // panics
+	testBasicPanic()                       // recovers
+	testGoRoutinePanic()                   // recovers
+	testDeepGoRoutinePanic()               // panics
+	testAsyncGoRoutinePanic()              // panics
+	testAsyncGoRoutinePanicWithErrorChan() // recovers
 }
 
 func handlePanic() {
@@ -60,4 +61,31 @@ func testAsyncGoRoutinePanic() {
 	}()
 
 	<-done
+}
+
+func testAsyncGoRoutinePanicWithErrorChan() {
+	defer handlePanic()
+
+	done, errStream := func() (<-chan struct{}, <-chan error) {
+		doneSignal := make(chan struct{})
+		errStream := make(chan error)
+
+		go func() {
+			defer close(doneSignal)
+			defer func() {
+				if r := recover(); r != nil {
+					errStream <- fmt.Errorf("%v", r)
+				}
+			}()
+			panic("testAsyncGoRoutinePanicWithErrorChan panic")
+		}()
+
+		return doneSignal, errStream
+	}()
+
+	select {
+	case <-done:
+	case err := <-errStream:
+		panic(err)
+	}
 }
